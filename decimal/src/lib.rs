@@ -7,7 +7,8 @@ use regex::Regex;
 #[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub struct Decimal {
     whole: BigInt,
-    fraction: BigInt,
+    fraction: String,
+    sign: Sign,
     // implement your type here
 }
 
@@ -27,67 +28,126 @@ impl Decimal {
             let whole = BigInt::from_biguint(sign, caps.get(2).unwrap().as_str().parse().unwrap());
             println!("whole BigInt: {:?}", whole);
             // let whole = BigInt::from
-            let fraction = BigInt::from_biguint(sign, caps.get(3).unwrap().as_str().parse().unwrap());
+            let fraction =String::from(caps.get(3).unwrap().as_str());
             println!("fraction BigInt: {:?}", fraction);
-            Some(Decimal{whole, fraction})
+            Some(Decimal{whole, fraction, sign})
         } else {
             None
         }
     }
 }
 
-        // convert fractions to string, count the digits, and pad with 0s
-        // then convert back to BigInt so we can do math
-fn equalize_fraction_magnitudes(mut frac1: BigInt, mut frac2: BigInt) -> (BigInt, BigInt, usize) {
-    let mut frac1_str = frac1.magnitude().to_string();
-    let mut frac2_str = frac2.magnitude().to_string();
-    let mut num_digits = frac1_str.len();
+        // count the digits, and pad with 0s if necessary
+fn equalize_fraction_magnitudes(mut frac1: String, mut frac2: String) -> (String, String, usize) {
+    // let mut frac1_str = frac1.magnitude().to_string();
+    // let mut frac2_str = frac2.magnitude().to_string();
+    let mut num_digits = frac1.len();
 
-    if frac2_str.len() > num_digits {
-        num_digits = frac2_str.len();
-        frac1_str = format!("{:0<width$}", frac1_str, width=num_digits);
-        frac1 = BigInt::from_biguint(frac1.sign(), frac1_str.parse().unwrap());
-    } else if frac2_str.len() < num_digits {
-        frac2_str = format!("{:0<width$}", frac2_str, width=num_digits);
-        frac2 = BigInt::from_biguint(frac2.sign(), frac2_str.parse().unwrap());    
+    if frac2.len() > num_digits {
+        num_digits = frac2.len();
+        frac1 = format!("{:0<width$}", frac1, width=num_digits);
+    } else if frac2.len() < num_digits {
+        frac2 = format!("{:0<width$}", frac2, width=num_digits);
     }
     (frac1, frac2, num_digits)
 }
 
-fn compose_decimal(mut whole: BigInt, mut fraction: BigInt, num_digits: usize) -> Decimal {
-    let mut frac_str = fraction.magnitude().to_string();
-    if fraction.sign() != whole.sign() {
-        match fraction.sign() {
-            Sign::Minus => {
-                whole -= 1;
-                fraction += 10u32.pow(num_digits as u32);
-            }
-            _ => {
-                whole += 1;
-                fraction -= 10u32.pow(num_digits as u32);
-            },
+fn add_fractions(mut frac1: String, frac2: String, num_digits: usize) -> (u32, String) {
+    let mut carry = 0;
+    for i in (0..num_digits).rev() {
+        let digit1 = frac1.get(i..i+1).unwrap().parse::<u32>().unwrap();
+        let digit2 = frac2.get(i..i+1).unwrap().parse::<u32>().unwrap();
+        let sum = digit1 + digit2 + carry;
+        if sum > 9 {
+            carry = sum / 10;
+            let digit = sum % 10;
+            frac1.replace_range(i..i+1, &digit.to_string());
+        } else {
+            carry = 0;
+            frac1.replace_range(i..i+1, &sum.to_string());
         }
-    } else if frac_str.len() > num_digits {
-        let mut carry = frac_str.drain(..(frac_str.len() - num_digits)).collect::<String>();
-        if fraction.sign() == Sign::Minus {
-            carry = format!("-{}", carry);
-        }
-        let carry_int: u32 = carry.parse().unwrap();
-        whole += carry_int;
-        fraction = frac_str.parse().unwrap();
     }
-    Decimal{whole, fraction}
+    if num_digits > 1 {
+        frac1 = frac1.trim_end_matches('0').to_string();
+    }
+    (carry, frac1)
+}
+fn sub_fractions(mut frac1: String, frac2: String, num_digits: usize) -> (i32, String) {
+    let mut borrow = 0;
+    for i in (0..num_digits).rev() {
+        let digit1 = frac1.get(i..i+1).unwrap().parse::<i32>().unwrap();
+        let digit2 = frac2.get(i..i+1).unwrap().parse::<i32>().unwrap();
+        let sum: i32 = (digit1 - digit2 - borrow);
+        if sum < 0 {
+            borrow = 1;
+            let digit = sum + 10;
+            frac1.replace_range(i..i+1, &digit.to_string());
+        } else {
+            borrow = 0;
+            frac1.replace_range(i..i+1, &sum.to_string());
+        }
+    }
+    if num_digits > 1 {
+        frac1 = frac1.trim_end_matches('0').to_string();
+    }
+    (borrow, frac1)
+}
+
+fn mult_fractions(mut frac1: String, frac2: String, num_digits: usize) -> (u32, String) {
+    let mut carry = 0;
+    for i in (0..num_digits).rev() {
+        let digit1 = frac1.get(i..i+1).unwrap().parse::<u32>().unwrap();
+        let digit2 = frac2.get(i..i+1).unwrap().parse::<u32>().unwrap();
+        let prod = digit1 * digit2 + carry;
+        if prod > 9 {
+            carry = prod / 10;
+            let digit = prod % 10;
+            frac1.replace_range(i..i+1, &digit.to_string());
+        } else {
+            carry = 0;
+            frac1.replace_range(i..i+1, &prod.to_string());
+        }
+    }
+    if num_digits > 1 {
+        frac1 = frac1.trim_end_matches('0').to_string();
+    }
+    (carry, frac1)
 }
 
 impl Add<Decimal> for Decimal {
     type Output = Decimal;
 
     fn add(self, other: Decimal) -> Decimal {
-        let whole = self.whole + other.whole;
+        let mut whole = self.whole.clone() + other.whole.clone();
 
-        let (my_frac, other_frac, num_digits) = equalize_fraction_magnitudes(self.fraction, other.fraction);
-        let fraction = my_frac + other_frac;
-        compose_decimal(whole, fraction, num_digits)
+        let (mut my_frac, other_frac, num_digits) = equalize_fraction_magnitudes(self.fraction, other.fraction);
+        let mut fraction = String::new();
+        let mut carry = 0;
+        let mut borrow = 0;
+        if self.sign == other.sign && self.sign == whole.sign() {
+            (carry, fraction) = add_fractions(my_frac, other_frac, num_digits);
+            if carry > 0 {
+                if whole.sign() == Sign::Minus {
+                    whole -= carry;
+                } else {
+                    whole += carry;
+                }
+            }
+        } else {
+            (borrow, fraction) = sub_fractions(my_frac, other_frac, num_digits);
+            if borrow > 0 {
+                if whole.sign() == Sign::Minus {
+                    whole += borrow;
+                } else {
+                    whole -= borrow;
+                }
+            }
+        }
+        let mut sign = whole.sign();
+        if let Sign::NoSign = sign {
+            sign = Sign::Plus;
+        }
+        Decimal {whole, fraction, sign}
     }
 }
 
@@ -95,12 +155,29 @@ impl Sub<Decimal> for Decimal {
     type Output = Decimal;
 
     fn sub(self, other: Decimal) -> Decimal {
-        let whole = self.whole - other.whole;
+        let mut whole = self.whole.clone() - other.whole.clone();
 
         let (my_frac, other_frac, num_digits) = equalize_fraction_magnitudes(self.fraction, other.fraction);
-
-        let fraction = my_frac - other_frac;
-        compose_decimal(whole, fraction, num_digits)
+        let mut fraction = String::new();
+        let mut borrow: i32 = 0;
+        if self.sign == other.sign {
+            (borrow, fraction) = sub_fractions(my_frac, other_frac, num_digits);
+            if borrow > 0 {
+                if whole.sign() == Sign::Minus {
+                    whole += borrow;
+                } else {
+                    whole -= borrow;
+                }
+            }
+        } else {
+            // converse of add, ignore the carry
+            let (_, fraction) = add_fractions(my_frac, other_frac, num_digits);
+        }
+        let mut sign = whole.sign();
+        if let Sign::NoSign = sign {
+            sign = Sign::Plus;
+        }
+        Decimal {whole, fraction, sign}
     }
 }
 
@@ -108,11 +185,21 @@ impl Mul<Decimal> for Decimal {
     type Output = Decimal;
 
     fn mul(self, other: Decimal) -> Decimal {
-        let whole = self.whole * other.whole;
+        let mut whole = self.whole.clone() * other.whole.clone();
 
         let (my_frac, other_frac, num_digits) = equalize_fraction_magnitudes(self.fraction, other.fraction);
-
-        let fraction = my_frac * other_frac;
-        compose_decimal(whole, fraction, num_digits)
+        let (carry, fraction) = mult_fractions(my_frac, other_frac, num_digits);
+        if carry > 0 {
+            if whole.sign() == Sign::Minus {
+                whole -= carry;
+            } else {
+                whole += carry;
+            }
+        }
+        let mut sign = whole.sign();
+        if let Sign::NoSign = sign {
+            sign = Sign::Plus;
+        }
+        Decimal {whole, fraction, sign}
     }
 }
