@@ -50,7 +50,6 @@ impl Decimal {
             Ordering::Greater => (lhs, rhs.upshift(left_decimal_place)),
         }
     }
-
 }
 
 impl Add<Decimal> for Decimal {
