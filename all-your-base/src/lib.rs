@@ -5,37 +5,6 @@ pub enum Error {
     InvalidDigit(u32),
 }
 
-///
-/// Convert a number between two bases.
-///
-/// A number is any slice of digits.
-/// A digit is any unsigned integer (e.g. u8, u16, u32, u64, or usize).
-/// Bases are specified as unsigned integers.
-///
-/// Return an `Err(.)` if the conversion is impossible.
-/// The tests do not test for specific values inside the `Err(.)`.
-///
-///
-/// You are allowed to change the function signature as long as all test still pass.
-///
-///
-/// Example:
-/// Input
-///   number: &[4, 2]
-///   from_base: 10
-///   to_base: 2
-/// Result
-///   Ok(vec![1, 0, 1, 0, 1, 0])
-///
-/// The example corresponds to converting the number 42 from decimal
-/// which is equivalent to 101010 in binary.
-///
-///
-/// Notes:
-///  * The empty slice ( "[]" ) is equal to the number 0.
-///  * Never output leading 0 digits, unless the input number is 0, in which the output must be `[0]`.
-///    However, your function must be able to process input with leading 0 digits.
-///
 pub fn convert(number: &[u32], from_base: u32, to_base: u32) -> Result<Vec<u32>, Error> {
     if from_base < 2 {
         return Err(Error::InvalidInputBase);
@@ -43,26 +12,32 @@ pub fn convert(number: &[u32], from_base: u32, to_base: u32) -> Result<Vec<u32>,
     if to_base < 2 {
         return Err(Error::InvalidOutputBase);
     }
-    let mut pow = 0;
-    let mut sum = 0;
-    for digit in number.iter().rev() {
+    let mut sum = number.iter().try_fold(0, |sum, digit|{
         if *digit >= from_base {
-            return Err(Error::InvalidDigit(*digit));
+            Err(Error::InvalidDigit(*digit))
+        } else {
+            Ok(sum * from_base + digit)
         }
-        sum += digit * from_base.pow(pow);
-        pow += 1;
-    }
+    })?;
+// The above try_fold is equivalent to the following loop code:
+// It is "more Rusty" (and more efficient) to use try_fold, 
+// but it is also more difficult to understand.
+    // for digit in number {
+    //     if *digit >= from_base {
+    //         return Err(Error::InvalidDigit(*digit));
+    //     }
+    //     sum = sum * from_base + digit;
+    // }
 
     let mut result: Vec<u32> = Vec::new();
-    // let mut quotient = sum;
     if sum == 0 {
         result.push(0);
-        return Result::Ok(result);
-    }
-    while sum > 0 {
-        result.push(sum % to_base);
-        sum /= to_base;
+    } else {
+        while sum > 0 {
+            result.push(sum % to_base);
+            sum /= to_base;
+        }
     }
     result.reverse();
-    return Result::Ok(result);
+    Ok(result)
 }
