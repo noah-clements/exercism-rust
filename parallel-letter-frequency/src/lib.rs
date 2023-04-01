@@ -25,7 +25,7 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
         let thread_tx = tx.clone();
         thread::spawn(move || {
             let mut result = HashMap::new();
-            for c in phrase.to_lowercase().to_string().chars() {
+            for c in phrase.to_lowercase().chars() {
                 if c.is_alphabetic() {
                     let count = result.entry(c).or_insert(0);
                     *count += 1;
@@ -42,7 +42,7 @@ pub fn frequency(input: &[&str], worker_count: usize) -> HashMap<char, usize> {
             acc.push_str(x);
             acc
         });
-        for c in phrase.to_lowercase().to_string().chars() {
+        for c in phrase.to_lowercase().chars() {
             if c.is_alphabetic() {
                 let count = all_results.entry(c).or_insert(0);
                 *count += 1;
