@@ -4,7 +4,7 @@ pub fn anagrams_for<'a>(word: &'a str, possible_anagrams: &[&'a str]) -> HashSet
     let mut anagrams: HashSet<&'a str> = HashSet::new();
     for anagram in possible_anagrams {
         if is_anagram(word, anagram) {
-            anagrams.insert(anagram.clone());
+            anagrams.insert(anagram);
         }
     }
     anagrams
