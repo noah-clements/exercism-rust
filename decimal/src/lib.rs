@@ -13,7 +13,7 @@ impl Decimal {
     pub fn try_from(input: &str) -> Option<Decimal> {
         let mut num_string = input.to_string();
         let mut decimal_place = 0;
-        if let Some(point) = input.find(".") {
+        if let Some(point) = input.find('.') {
             decimal_place = input.len() - point - 1;
             num_string.remove(point);
         }
