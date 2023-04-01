@@ -14,7 +14,7 @@ pub fn evaluate(inputs: &[CalculatorInput]) -> Option<i32> {
     for input in inputs {
         match input {
             CalculatorInput::Value(val) => {
-                stack.push(val.clone());
+                stack.push(*val);
             },
             _ => {
                 let a = stack.pop()?;
