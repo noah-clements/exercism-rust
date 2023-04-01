@@ -9,10 +9,8 @@ pub fn annotate(minefield: &[&str]) -> Vec<String> {
                 let mut count = 0;
                 for i in row_index.saturating_sub(1)..=row_index + 1 {
                     for j in col_index.saturating_sub(1)..=col_index + 1 {
-                        if i < minefield.len() && j < row.len() {
-                            if minefield[i].as_bytes()[j] as char == '*' {
+                        if i < minefield.len() && j < row.len() && minefield[i].as_bytes()[j] as char == '*' {
                                 count += 1;
-                            }
                         }
                     }
                 }
