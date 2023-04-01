@@ -15,7 +15,7 @@ pub struct Duration (f64);
 
 impl From<u64> for Duration {
     fn from(s: u64) -> Self {
-        Self{0: s as f64}
+        Self(s as f64)
     }
 }
 
