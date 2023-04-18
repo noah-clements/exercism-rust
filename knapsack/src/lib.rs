@@ -1,36 +1,21 @@
-use std::cmp::{max, Reverse};
+use std::cmp::max;
 
 pub struct Item {
-    pub weight: u32,
-    pub value: u32,
+    pub weight: usize,
+    pub value: usize,
 }
 
 pub fn maximum_value(_max_weight: u32, mut _items: Vec<Item>) -> u32 {
-    let mut max_value = 0;
-    // let mut max_val_weight = 0;
-    _items.sort_unstable_by_key(|item| Reverse(item.value));
-    for (i, item) in _items.iter().enumerate() {
-        let mut weight = 0;
-        let mut value = 0;
-        let mut tmp_value = 0;
-        if item.weight <= _max_weight {
-            value = item.value;
-            weight = item.weight;
-        }
-        for j in i+1.._items.len() {
-            if weight + _items[j].weight <= _max_weight {
-                weight += _items[j].weight;
-                value += _items[j].value;
-            } else if weight - _items[j-1].weight + _items[j].weight <= _max_weight {
-                tmp_value = max(value, tmp_value);
-                weight += _items[j].weight;
-                weight -= _items[j-1].weight;
-                value += _items[j].value;
-                value -= _items[j-1].value;
+    let n = _items.len();
+    let mut table = vec![vec![0; _max_weight as usize + 1]; n+1];
+    for i in 1..=n {
+        for w in 1..=_max_weight as usize {
+            if _items[i-1].weight > w {
+                table[i][w] = table[i-1][w];
+            } else {
+                table[i][w] = max(table[i-1][w], _items[i-1].value + table[i-1][w-_items[i-1].weight]);
             }
         }
-        max_value = max(max_value, value);
-        max_value = max(max_value, tmp_value);
     }
-    max_value
+    table[n][_max_weight as usize] as u32
 }
